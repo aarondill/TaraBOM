@@ -9,14 +9,12 @@ on:
       - ".github/workflows/**"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   create_release: # create a release as a draft, output release tag to be used in next step
     name: Create Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # needed to make a release
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       id: ${{ steps.create_release.outputs.id }}
@@ -66,9 +64,6 @@ jobs:
           #   asset_name: bom_retriever-macos-amd64
     steps:
       - uses: actions/checkout@v3
-      - name: Fetch repository tags
-        run: git fetch --tags
-
       # Create the executable
       - uses: actions/setup-python@v4
         with:
@@ -127,9 +122,6 @@ jobs:
     needs: [create_release, build, publish] # if any of these fail, the whole job fails, so remove the release
     if: ${{ failure() || cancelled() }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Fetch repository tags
-        run: git fetch --tags
       - name: Remove release
         env:
           GH_TOKEN: ${{ github.token }}
