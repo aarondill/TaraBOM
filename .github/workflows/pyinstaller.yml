@@ -63,7 +63,6 @@ jobs:
         id: pyinstaller
         with:
           spec: "src/bom_retriever.py"
-          python_ver: "3.6"
           requirements: "requirements.txt"
           options: --onefile, --name "bom_retriever"
 
