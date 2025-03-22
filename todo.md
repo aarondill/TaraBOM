@@ -4,8 +4,6 @@ Errors/warnings:
 
 To-do:
 
-- JSON output
-- Server with /[part]
 - Hard-coded in some of the network locations.
   - Those locations should be replaced with variables, in case of server migrations or domain changes in the future.
   - Values to be set in a configuration file, style points added if the file can be modified via a web interface.

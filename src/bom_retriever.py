@@ -78,7 +78,7 @@ class BOMRetriever:
         return OmnifyEntry(
             desc=item_row[0],
             status=item_row[1],
-            under_eco=item_row[2],
+            under_eco=bool(item_row[2]),
             rev_letter=rev_letter,
         )
 
