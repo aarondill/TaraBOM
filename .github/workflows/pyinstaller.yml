@@ -53,9 +53,10 @@ jobs:
           - os: windows-latest
             artifact_name: bom_retriever.exe
             asset_name: bom_retriever-windows-amd64
-          - os: macos-latest
-            artifact_name: bom_retriever
-            asset_name: bom_retriever-macos-amd64
+          # Uncomment when macOS is supported, it seems like more effort than it's worth
+          # - os: macos-latest
+          #   artifact_name: bom_retriever
+          #   asset_name: bom_retriever-macos-amd64
     steps:
       - uses: actions/checkout@v3
       - name: Create Executable
