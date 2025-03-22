@@ -1,7 +1,8 @@
 import sys
 import pyodbc
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass, asdict
+import json
 
 
 @dataclass(kw_only=True)
@@ -49,8 +50,8 @@ class Output:
 
 class BOMRetriever:
     # This is the main class
-    def __init__(self):
-        self.cursor = self.cnxn.cursor()
+    def __init__(self, cnxn):
+        self.cursor = cnxn.cursor()
 
     def check_item_existence(self, pn) -> bool:
         query = "SELECT Rev FROM EntryInfo WHERE PartNumber = ?"
@@ -151,16 +152,34 @@ class BOMRetriever:
         return bom_items
 
 
+class DataclassJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if is_dataclass(o):
+            return asdict(o)
+        return super().default(o)
+
+
+def jsonify(o):
+    return json.dumps(o, cls=DataclassJSONEncoder)
+
+
 if __name__ == "__main__":
     if sys.version_info[0] < 3:
         print("Requires Python 3")
         sys.exit()
+
+    # HACK: testing
+    debug_pn = sys.argv[1]
+    print(f"Loading toplevel item for {debug_pn}")
+
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
             r"Driver=SQL Server;Server=TX01AS01;Database=omnify50;Trusted_Connection=yes;"
         )
     ) as cnxn:
-        retreiver = BOMRetriever()
         print("Starting server")
+        retreiver = BOMRetriever(cnxn)
+        result = retreiver.load_toplevel_item(debug_pn)
+        print(jsonify(result))
         # TODO: Start server and call load_toplevel_item on request
