@@ -66,6 +66,8 @@ jobs:
           #   asset_name: bom_retriever-macos-amd64
     steps:
       - uses: actions/checkout@v3
+      - name: Fetch repository tags
+        run: git fetch --tags
 
       # Create the executable
       - uses: actions/setup-python@v4
@@ -126,6 +128,8 @@ jobs:
     if: ${{ failure() || cancelled() }}
     steps:
       - uses: actions/checkout@v3
+      - name: Fetch repository tags
+        run: git fetch --tags
       - name: Remove release
         env:
           GH_TOKEN: ${{ github.token }}
