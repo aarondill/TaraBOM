@@ -93,10 +93,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           INPUT_FILE: dist/${{ matrix.asset_name }}
           TAG: ${{ needs.create_release.outputs.tag }}
+        shell: bash
         run: |
           # Genuinely, you can't remove this line
           # idk, i think it updates the cache or something
           gh release view "$TAG"
+          ls . ./dist "$INPUT_FILE"
           gh release upload "$TAG" "$INPUT_FILE"
 
   publish: # set the release tag as non-draft
