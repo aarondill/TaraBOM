@@ -28,12 +28,6 @@ jobs:
         id: tag
         run: printf '%s\n' "tag=v$(date +%Y%m%d.%H%M%S)" >> $GITHUB_OUTPUT
 
-      - name: Create Release Tag
-        uses: tvdias/github-tagger@v0.0.1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.tag.outputs.tag }}
-
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -53,17 +47,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            artifact_name: bom_retriever.exe
-            asset_name: bom_retriever-windows-amd64
           - os: ubuntu-latest
             artifact_name: bom_retriever
             asset_name: bom_retriever-linux-amd64
+          - os: windows-latest
+            artifact_name: bom_retriever.exe
+            asset_name: bom_retriever-windows-amd64
           # Uncomment when macOS is supported, it seems like more effort than it's worth
           # - os: macos-latest
           #   artifact_name: bom_retriever
           #   asset_name: bom_retriever-macos-amd64
     steps:
+      - run: sleep 10 # wait for the release to be created
       - uses: actions/checkout@v3
       - name: Create Executable
         uses: sayyid5416/pyinstaller@v1
