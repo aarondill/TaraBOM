@@ -98,7 +98,6 @@ jobs:
           # Genuinely, you can't remove this line
           # idk, i think it updates the cache or something
           gh release view "$TAG"
-          ls . ./dist "$INPUT_FILE"
           gh release upload "$TAG" "$INPUT_FILE"
 
   publish: # set the release tag as non-draft
@@ -111,7 +110,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.create_release.outputs.tag }}
-        run: gh release edit "$TAG" --draft=false
+        run: |
+          gh release view "$TAG"
+          gh release edit "$TAG" --draft=false
       - uses: eregon/keep-last-n-releases@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
