@@ -124,7 +124,7 @@ class BOMRetriever:
             bom_attachments=bom_attachments,
         )
 
-    def load_bom_attachments(self, toplevel_rev_id) -> BomItem:
+    def load_bom(self, toplevel_rev_id) -> BomItem:
         query = "SELECT ItemNum,ItemRevID,ItemRevStr,ItemPN,ItemDesc,ItemStatus,QtyStr FROM PartsList WHERE RevID = ? ORDER BY ItemNum ASC"
         self.cursor.execute(query, (toplevel_rev_id,))
         rows = self.cursor.fetchall()
