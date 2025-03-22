@@ -58,7 +58,7 @@ jobs:
           #   artifact_name: bom_retriever
           #   asset_name: bom_retriever-macos-amd64
     steps:
-      - run: sleep 10 # wait for the release to be created
+      - run: sleep 100 # wait for the release to be created
       - uses: actions/checkout@v3
       - name: Create Executable
         uses: sayyid5416/pyinstaller@v1
