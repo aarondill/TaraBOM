@@ -1,0 +1,118 @@
+name: PyInstaller Release
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      # Other paths likely don't need to be published
+      - "src/**"
+      - "requirements.txt"
+      - ".github/workflows/**"
+
+permissions:
+  contents: write # Needed to manage draft releases
+
+jobs:
+  create_release: # create a release as a draft, output release tag to be used in next step
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      id: ${{ steps.create_release.outputs.id }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set tag name
+        id: tag
+        run: printf '%s\n' "tag=v$(date +%Y%m%d.%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NAME: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release create --draft --title "$NAME" --generate-notes "$TAG"
+          gh release view "$TAG"
+
+  build: # Build on all 3 platforms and upload to release
+    name: Build for ${{ matrix.os }}
+    needs: create_release
+    permissions:
+      contents: write # needed to make a release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: bom_retriever-linux-amd64
+          - os: windows-latest
+            asset_name: bom_retriever-windows-amd64.exe
+          # Uncomment when macOS is supported, it seems like more effort than it's worth
+          # - os: macos-latest
+          #   asset_name: bom_retriever-macos-amd64
+    steps:
+      - uses: actions/checkout@v3
+      # Create the executable
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10" # update bundled python version HERE!
+      - name: Install dependencies
+        run: pip install -r "requirements.txt"
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+      - name: Create Executable
+        env:
+          ARTIFACT: ${{ matrix.asset_name }}
+        shell: bash
+        run: |
+          pyinstaller \
+            --onefile \
+            --distpath ./dist \
+            --name "$ARTIFACT" \
+            --specpath DIR \
+            src/bom_retriever.py
+
+      - name: Upload binaries to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_FILE: dist/${{ matrix.asset_name }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        shell: bash
+        run: |
+          gh release upload "$TAG" "$INPUT_FILE"
+
+  publish: # set the release tag as non-draft
+    name: Publish Release
+    needs: [create_release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        run: |
+          gh release edit "$TAG" --draft=false
+      - uses: eregon/keep-last-n-releases@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          n: 3
+          remove_tags_without_release: false # keep tags
+
+  remove_release_on_failure:
+    runs-on: ubuntu-20.04
+    needs: [create_release, build, publish] # if any of these fail, the whole job fails, so remove the release
+    if: ${{ failure() || cancelled() }}
+    steps:
+      - name: Remove release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        run: |
+          gh release delete "$TAG" --yes
