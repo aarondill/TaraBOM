@@ -131,4 +131,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.create_release.outputs.tag }}
-        run: gh release delete "$TAG" --yes
+        run: |
+          gh release view "$TAG"
+          gh release delete "$TAG" --yes
