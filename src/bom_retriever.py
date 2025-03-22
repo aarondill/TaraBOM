@@ -84,7 +84,7 @@ class BOMRetriever:
             rev_letter=rev_letter,
         )
 
-    def _get_ttl_hash():
+    def _get_ttl_hash(self):
         """Return the same value withing `seconds` time period"""
         expiration_time = 60 * 30  # 30 minutes
         return round(time.time() / expiration_time)
