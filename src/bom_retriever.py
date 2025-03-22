@@ -1,5 +1,7 @@
+import time
 import sys
 from typing import List, Union
+from functools import lru_cache
 import pyodbc
 from contextlib import closing
 from dataclasses import dataclass, is_dataclass, asdict
@@ -82,7 +84,16 @@ class BOMRetriever:
             rev_letter=rev_letter,
         )
 
-    def load_toplevel_item(self, part_num) -> Union[Output, tuple[int, str]]:
+    def _get_ttl_hash():
+        """Return the same value withing `seconds` time period"""
+        expiration_time = 60 * 30  # 30 minutes
+        return round(time.time() / expiration_time)
+
+    @lru_cache()
+    def load_toplevel_item(
+        self, part_num, ttl_hash=None
+    ) -> Union[Output, tuple[int, str]]:
+        del ttl_hash  # This isn't used! only here to void old caches!
         # Error if attempting to load an empty part number
         if not part_num:
             return (400, "Part Number Required: please enter a part number")
@@ -173,7 +184,7 @@ class Serv(BaseHTTPRequestHandler):
         part_num = self.path.split("/")[1]
         retreiver: BOMRetriever = self.server.retreiver
         try:
-            result = retreiver.load_toplevel_item(part_num)
+            result = retreiver.load_toplevel_item(part_num, retreiver._get_ttl_hash())
         except Exception as e:
             self.send_response(500)
             self.end_headers()
