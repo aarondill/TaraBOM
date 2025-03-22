@@ -187,7 +187,16 @@ if __name__ == "__main__":
         print("Requires Python 3")
         sys.exit()
 
-    port = len(sys.argv) > 0 and sys.argv[1] or 8080
+    port = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else 8080
+    try:
+        port = int(port)
+    except ValueError:
+        print("Invalid port number: ", port)
+        sys.exit(1)
+    if port < 0 or port > 65535:
+        print("Port number out of range")
+        sys.exit(1)
+
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
