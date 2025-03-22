@@ -51,6 +51,8 @@ jobs:
   build: # Build on all 3 platforms and upload to release
     name: Build for ${{ matrix.os }}
     needs: create_release
+    permissions:
+      contents: write # needed to make a release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -84,7 +86,7 @@ jobs:
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
           mv "$INPUT_FILE" "$ASSET_NAME"
-          echo gh release upload "$TAG" "$ASSET_NAME"
+          gh release view "$TAG"
           # why is this failing?
           gh release upload "$TAG" "$ASSET_NAME"
 
