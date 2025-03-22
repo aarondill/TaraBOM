@@ -1,4 +1,5 @@
 import sys
+from typing import List, Union
 import pyodbc
 from contextlib import closing
 from dataclasses import dataclass, is_dataclass, asdict
@@ -35,7 +36,7 @@ class BomItem:
     ItemDesc: str
     ItemStatus: str
     QtyStr: str
-    bom_attachments: list[BomAttachment]
+    bom_attachments: List[BomAttachment]
 
 
 @dataclass(kw_only=True)
@@ -46,7 +47,7 @@ class Output:
     status: int
     under_eco: bool
     rev_letter: str
-    bill_of_materials: list[BomItem]
+    bill_of_materials: List[BomItem]
 
 
 class BOMRetriever:
@@ -80,7 +81,7 @@ class BOMRetriever:
             rev_letter=rev_letter,
         )
 
-    def load_toplevel_item(self, part_num) -> Output | (int, str):
+    def load_toplevel_item(self, part_num) -> Union[Output, (int, str)]:
         # Error if attempting to load an empty part number
         if not part_num:
             return (400, "Part Number Required: please enter a part number")
