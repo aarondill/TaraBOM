@@ -159,8 +159,9 @@ class DataclassJSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def jsonify(o):
-    return json.dumps(o, cls=DataclassJSONEncoder)
+# Note that the returned values can *not* be parsed by json.loads, since it will return dicts
+def jsonify(o, **kwargs):
+    return json.dumps(o, cls=DataclassJSONEncoder, indent=4, sort_keys=True, **kwargs)
 
 
 if __name__ == "__main__":
