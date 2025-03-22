@@ -87,7 +87,7 @@ jobs:
             --onefile \
             --distpath ./dist \
             --name "$ARTIFACT" \
-            --specpath DIR
+            --specpath DIR \
             src/bom_retriever.py
 
       - name: Upload binaries to release
