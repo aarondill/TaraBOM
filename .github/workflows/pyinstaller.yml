@@ -69,27 +69,38 @@ jobs:
           #   asset_name: bom_retriever-macos-amd64
     steps:
       - uses: actions/checkout@v3
-      - name: Create Executable
-        uses: sayyid5416/pyinstaller@v1
-        id: pyinstaller
+
+      # Create the executable
+      - uses: actions/setup-python@v4
         with:
-          spec: "src/bom_retriever.py"
-          requirements: "requirements.txt"
-          options: --onefile, --name "bom_retriever"
+          python-version: "3.10" # update bundled python version HERE!
+      - name: Install dependencies
+        run: pip install -r "requirements.txt"
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+      - name: Create Executable
+        env:
+          ARTIFACT: ${{ matrix.asset_name }}
+        shell: bash
+        run: |
+          pyinstaller \
+            --onefile \
+            --distpath ./dist \
+            --name "$ARTIFACT" \
+            --specpath DIR
+            src/bom_retriever.py
 
       - name: Upload binaries to release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          INPUT_FILE: ${{ steps.pyinstaller.outputs.executable_path }}/${{ matrix.artifact_name }}
-          ASSET_NAME: ${{ matrix.asset_name }}
+          INPUT_FILE: dist/${{ matrix.asset_name }}
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
-          mv "$INPUT_FILE" "$ASSET_NAME"
           # Genuinely, you can't remove this line
           # idk, i think it updates the cache or something
           gh release view "$TAG"
-          gh release upload "$TAG" "$ASSET_NAME"
+          gh release upload "$TAG" "$INPUT_FILE"
 
   publish: # set the release tag as non-draft
     name: Publish Release
