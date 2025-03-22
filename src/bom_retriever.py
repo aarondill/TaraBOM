@@ -36,7 +36,7 @@ class BomItem:
     ItemDesc: str
     ItemStatus: str
     QtyStr: str
-    bom_attachments: List[BomAttachment]
+    attachments: List[BomAttachment]
 
 
 @dataclass(kw_only=True)
@@ -115,14 +115,14 @@ class BOMRetriever:
             warnings.append(
                 "Item Under ECO: Part number is under an engineering change. Consult engineering before proceeding."
             )
-        bom_attachments = self.load_bom(toplevel_rev_id)
+        bom = self.load_bom(toplevel_rev_id)
         return Output(
             warnings=warnings,
             desc=info.desc,
             status=info.status,
             under_eco=info.under_eco,
             rev_letter=info.rev_letter,
-            bom_attachments=bom_attachments,
+            bill_of_materials=bom,
         )
 
     def load_bom(self, toplevel_rev_id) -> BomItem:
@@ -150,7 +150,7 @@ class BOMRetriever:
                 ItemDesc=row[4],
                 ItemStatus=row[5],
                 QtyStr=row[6],
-                bom_attachments=attachments,
+                attachments=attachments,
             )
             bom_items.append(item)
         return bom_items
