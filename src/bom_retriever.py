@@ -141,17 +141,17 @@ class BOMRetriever:
                     + str(attachment_row[0])
                 )
                 attachments.append(BomAttachment(url=url, file_name=attachment_row[1]))
-        item = BomItem(
-            ItemNum=row[0],
-            ItemRevID=row[1],
-            ItemRevStr=row[2],
-            ItemPN=row[3],
-            ItemDesc=row[4],
-            ItemStatus=row[5],
-            QtyStr=row[6],
-            bom_attachments=attachments,
-        )
-        bom_items.append(item)
+            item = BomItem(
+                ItemNum=row[0],
+                ItemRevID=row[1],
+                ItemRevStr=row[2],
+                ItemPN=row[3],
+                ItemDesc=row[4],
+                ItemStatus=row[5],
+                QtyStr=row[6],
+                bom_attachments=attachments,
+            )
+            bom_items.append(item)
         return bom_items
 
 
