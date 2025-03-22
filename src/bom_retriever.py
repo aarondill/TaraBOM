@@ -171,7 +171,13 @@ class Serv(BaseHTTPRequestHandler):
     def do_GET(self):
         part_num = self.path.split("/")[1]
         retreiver: BOMRetriever = self.server.retreiver
-        result = retreiver.load_toplevel_item(part_num)
+        try:
+            result = retreiver.load_toplevel_item(part_num)
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(bytes(str(e), "utf-8"))
+            return
         if isinstance(result, tuple):  # error case
             self.send_response(result[0])
             self.end_headers()
