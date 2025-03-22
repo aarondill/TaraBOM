@@ -81,7 +81,7 @@ class BOMRetriever:
             rev_letter=rev_letter,
         )
 
-    def load_toplevel_item(self, part_num) -> Union[Output, (int, str)]:
+    def load_toplevel_item(self, part_num) -> Union[Output, tuple[int, str]]:
         # Error if attempting to load an empty part number
         if not part_num:
             return (400, "Part Number Required: please enter a part number")
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         print("Requires Python 3")
         sys.exit()
 
-    port = sys.argv[1] or 8080
+    port = len(sys.argv) > 0 and sys.argv[1] or 8080
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
