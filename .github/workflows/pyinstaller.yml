@@ -11,8 +11,6 @@ on:
 permissions:
   contents: read
 
-  uses: Martin005/pyinstaller-action@v1.2.0
-
 jobs:
   create_release: # create a release as a draft, output release tag to be used in next step
     name: Publish Compiled
