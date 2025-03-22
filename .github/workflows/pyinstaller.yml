@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   create_release: # create a release as a draft, output release tag to be used in next step
-    name: Publish Compiled
+    name: Create Release
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to make a release
@@ -79,6 +79,7 @@ jobs:
           gh release upload "$TAG" "$ASSET_NAME"
 
   publish: # set the release tag as non-draft
+    name: Publish Release
     needs: [create_release, build]
     runs-on: ubuntu-latest
     steps:
