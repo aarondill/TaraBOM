@@ -184,6 +184,7 @@ class Serv(BaseHTTPRequestHandler):
         try:
             result = retreiver.load_toplevel_item(part_num, retreiver._get_ttl_hash())
         except Exception as e:
+            print(e)
             self.send_response(500)
             self.end_headers()
             self.wfile.write(bytes(str(e), "utf-8"))
