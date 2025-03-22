@@ -53,12 +53,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact_name: bom_retriever
-            asset_name: bom_retriever-linux-amd64
           - os: windows-latest
             artifact_name: bom_retriever.exe
             asset_name: bom_retriever-windows-amd64
+          - os: ubuntu-latest
+            artifact_name: bom_retriever
+            asset_name: bom_retriever-linux-amd64
           # Uncomment when macOS is supported, it seems like more effort than it's worth
           # - os: macos-latest
           #   artifact_name: bom_retriever
@@ -82,6 +82,8 @@ jobs:
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
           mv "$INPUT_FILE" "$ASSET_NAME"
+          echo gh release upload "$TAG" "$ASSET_NAME"
+          # why is this failing?
           gh release upload "$TAG" "$ASSET_NAME"
 
   publish: # set the release tag as non-draft
