@@ -119,3 +119,16 @@ jobs:
         with:
           n: 3
           remove_tags_without_release: false # keep tags
+
+  notify-job:
+    runs-on: ubuntu-20.04
+    needs: [create_release, build, publish] # if any of these fail, the whole job fails, so remove the release
+    if: ${{ failure() || cancelled() }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Remove release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        run: gh release delete "$TAG" --yes
