@@ -30,15 +30,23 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: ncipollo/release-action@v1
-        with:
-          name: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
-          tag: ${{ steps.tag.outputs.tag }}
-          omitBody: true
-          commit: ${{ github.sha }}
-          makeLatest: true
-          draft: true
-          prerelease: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NAME: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release create --draft --title "$NAME" --generate-notes "$TAG"
+          git fetch --tags origin
+        # uses: ncipollo/release-action@v1
+        # with:
+        #   name: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
+        #   tag: ${{ steps.tag.outputs.tag }}
+        #   omitBody: true
+        #   commit: ${{ github.sha }}
+        #   makeLatest: true
+        #   draft: true
+        #   prerelease: false
 
   build: # Build on all 3 platforms and upload to release
     name: Build for ${{ matrix.os }}
@@ -86,13 +94,12 @@ jobs:
     needs: [create_release, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: eregon/publish-release@v1
+      - name: Publish Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag: ${{needs.create_release.outputs.tag}}
-          release_id: ${{ needs.create_release.outputs.id }}
-
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        run: gh release edit "$TAG" --draft=false
       - uses: eregon/keep-last-n-releases@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
