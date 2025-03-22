@@ -90,9 +90,7 @@ class BOMRetriever:
         return round(time.time() / expiration_time)
 
     @lru_cache()
-    def load_toplevel_item(
-        self, part_num, ttl_hash=None
-    ) -> Union[Output, tuple[int, str]]:
+    def load_toplevel_item(self, part_num, ttl_hash) -> Union[Output, tuple[int, str]]:
         del ttl_hash  # This isn't used! only here to void old caches!
         # Error if attempting to load an empty part number
         if not part_num:
