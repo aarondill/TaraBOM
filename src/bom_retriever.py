@@ -44,6 +44,7 @@ class Output:
     """Class for an item in Omnify"""
 
     desc: str
+    warnings: List[str]
     status: int
     under_eco: bool
     rev_letter: str
