@@ -28,6 +28,12 @@ jobs:
         id: tag
         run: printf '%s\n' "tag=v$(date +%Y%m%d.%H%M%S)" >> $GITHUB_OUTPUT
 
+      - name: Create Release Tag
+        uses: tvdias/github-tagger@v0.0.1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.tag.outputs.tag }}
+
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
