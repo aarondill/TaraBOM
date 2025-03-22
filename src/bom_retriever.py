@@ -8,10 +8,43 @@ from dataclasses import dataclass
 class OmnifyEntry:
     """Class for an item in Omnify"""
 
-    item_desc: str
-    item_status: int
-    item_under_eco: bool
+    desc: str
+    status: int
+    under_eco: bool
     rev_letter: str
+
+
+@dataclass(kw_only=True)
+class BomAttachment:
+    """Class for an attachment in Omnify"""
+
+    url: str
+    file_name: str
+
+
+@dataclass(kw_only=True)
+class BomItem:
+    """Class for an item in Omnify"""
+
+    ItemNum: int
+    ItemRevID: int
+    ItemRevStr: str
+    ItemPN: str
+    ItemDesc: str
+    ItemStatus: str
+    QtyStr: str
+    bom_attachments: list[BomAttachment]
+
+
+@dataclass(kw_only=True)
+class Output:
+    """Class for an item in Omnify"""
+
+    desc: str
+    status: int
+    under_eco: bool
+    rev_letter: str
+    bill_of_materials: list[BomItem]
 
 
 class BOMRetriever:
@@ -39,13 +72,13 @@ class BOMRetriever:
         rev_letter = self.cursor.fetchone()[0]
 
         return OmnifyEntry(
-            item_desc=item_row[0],
-            item_status=item_row[1],
-            item_under_eco=item_row[2],
+            desc=item_row[0],
+            status=item_row[1],
+            under_eco=item_row[2],
             rev_letter=rev_letter,
         )
 
-    def load_toplevel_item(self, part_num) -> str:
+    def load_toplevel_item(self, part_num) -> Output:
         # Error if attempting to load an empty part number
         if not part_num:
             # TODO: return http error, Part Number Required; please enter a part number
@@ -68,35 +101,54 @@ class BOMRetriever:
         toplevel_rev_id = row[0]
 
         # TODO: add tl_item to json output
-        tl_item = self.get_item_info(toplevel_rev_id)
+        info = self.get_item_info(toplevel_rev_id)
+        warnings = []
 
         # After confirming item is released, check if it is currently on an open ECO.
         # If so, warn the user but allow to proceed.
-        if tl_item.item_under_eco:
-            # TODO: add to json output, Item Under ECO; Part number is under an engineering change. Consult engineering before proceeding.
-            print("Warning: Item is currently under an ECO")
-        # TODO: handle load_bom
-        # TODO: return json
+        if info.under_eco:
+            warnings.append(
+                "Item Under ECO: Part number is under an engineering change. Consult engineering before proceeding."
+            )
+        bom_attachments = self.load_bom(toplevel_rev_id)
+        return Output(
+            warnings=warnings,
+            desc=info.desc,
+            status=info.status,
+            under_eco=info.under_eco,
+            rev_letter=info.rev_letter,
+            bom_attachments=bom_attachments,
+        )
 
-    def load_bom(self, toplevel_rev_id):
+    def load_bom_attachments(self, toplevel_rev_id) -> BomItem:
         query = "SELECT ItemNum,ItemRevID,ItemRevStr,ItemPN,ItemDesc,ItemStatus,QtyStr FROM PartsList WHERE RevID = ? ORDER BY ItemNum ASC"
         self.cursor.execute(query, (toplevel_rev_id,))
         rows = self.cursor.fetchall()
+        bom_items = []
         for row in rows:
-            print(row)  # TODO: json output the row
-
-            # Get ID's and file names for all "Public" (VaultID=0) attachments for the current BOM item, build a list of Omnify retrieval links
-            attachment_query = (
+            attachment_query = (  # Get ID's and file names for all "Public" (VaultID=0) attachments for the current BOM item, build a list of Omnify retrieval links
                 "SELECT ID,FileURL FROM Attachment WHERE (VaultID=0 AND RevID = ?)"
             )
             self.cursor.execute(attachment_query, (row[1],))
+            attachments = []
             while attachment_row := self.cursor.fetchone():
-                attachment_link = (
+                url = (
                     "http://omnify.kissgroupllc.net/omnify5/Apps/OpenDocument.aspx?obj=0&docid="
                     + str(attachment_row[0])
                 )
-                # TODO: add to json output, link: attachment_link, file_name: attachment_row[1]
-                print(attachment_link)
+                attachments.append(BomAttachment(url=url, file_name=attachment_row[1]))
+        item = BomItem(
+            ItemNum=row[0],
+            ItemRevID=row[1],
+            ItemRevStr=row[2],
+            ItemPN=row[3],
+            ItemDesc=row[4],
+            ItemStatus=row[5],
+            QtyStr=row[6],
+            bom_attachments=attachments,
+        )
+        bom_items.append(item)
+        return bom_items
 
 
 if __name__ == "__main__":
