@@ -71,7 +71,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          INPUT_FILE: ${{ steps.pyinstaller.outputs.executable_path }}/{{ matrix.artifact_name }}
+          INPUT_FILE: ${{ steps.pyinstaller.outputs.executable_path }}/${{ matrix.artifact_name }}
           ASSET_NAME: ${{ matrix.asset_name }}
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
