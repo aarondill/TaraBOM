@@ -86,8 +86,9 @@ jobs:
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
           mv "$INPUT_FILE" "$ASSET_NAME"
+          # Genuinely, you can't remove this line
+          # idk, i think it updates the cache or something
           gh release view "$TAG"
-          # why is this failing?
           gh release upload "$TAG" "$ASSET_NAME"
 
   publish: # set the release tag as non-draft
