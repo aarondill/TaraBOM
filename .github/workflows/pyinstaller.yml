@@ -1,0 +1,99 @@
+name: PyInstaller Release
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      # Other paths likely don't need to be published
+      - "src/**"
+      - "requirements.txt"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+  uses: Martin005/pyinstaller-action@v1.2.0
+
+jobs:
+  create_release: # create a release as a draft, output release tag to be used in next step
+    name: Publish Compiled
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to make a release
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      id: ${{ steps.create_release.outputs.id }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set tag name
+        id: tag
+        run: printf '%s\n' "tag=v$(date +%Y%m%d.%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
+          tag: ${{ steps.tag.outputs.tag }}
+          omitBody: true
+          commit: ${{ github.sha }}
+          makeLatest: true
+          draft: true
+          prerelease: false
+
+  build: # Build on all 3 platforms and upload to release
+    name: Build for ${{ matrix.os }}
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: bom_retriever
+            asset_name: bom_retriever-linux-amd64
+          - os: windows-latest
+            artifact_name: bom_retriever.exe
+            asset_name: bom_retriever-windows-amd64
+          - os: macos-latest
+            artifact_name: bom_retriever
+            asset_name: bom_retriever-macos-amd64
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create Executable
+        uses: sayyid5416/pyinstaller@v1
+        id: pyinstaller
+        with:
+          spec: "src/bom_retriever.py"
+          python_ver: "3.6"
+          requirements: "requirements.txt"
+          options: --onefile, --name "bom_retriever"
+
+      - name: Upload binaries to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_FILE: ${{ steps.pyinstaller.outputs.executable_path }}/{{ matrix.artifact_name }}
+          ASSET_NAME: ${{ matrix.asset_name }}
+          TAG: ${{ needs.create_release.outputs.tag }}
+        run: |
+          mv "$INPUT_FILE" "$ASSET_NAME"
+          gh release upload "$TAG" "$ASSET_NAME"
+
+  publish: # set the release tag as non-draft
+    needs: [create_release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: eregon/publish-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: ${{needs.create_release.outputs.tag}}
+          release_id: ${{ needs.create_release.outputs.id }}
+
+      - uses: eregon/keep-last-n-releases@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          n: 3
+          remove_tags_without_release: false # keep tags
