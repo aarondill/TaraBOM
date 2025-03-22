@@ -9,7 +9,7 @@ on:
       - ".github/workflows/**"
 
 permissions:
-  contents: write
+  contents: write # Needed to manage draft releases
 
 jobs:
   create_release: # create a release as a draft, output release tag to be used in next step
@@ -35,16 +35,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           gh release create --draft --title "$NAME" --generate-notes "$TAG"
-          git fetch --tags origin
-        # uses: ncipollo/release-action@v1
-        # with:
-        #   name: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
-        #   tag: ${{ steps.tag.outputs.tag }}
-        #   omitBody: true
-        #   commit: ${{ github.sha }}
-        #   makeLatest: true
-        #   draft: true
-        #   prerelease: false
+          gh release view "$TAG"
 
   build: # Build on all 3 platforms and upload to release
     name: Build for ${{ matrix.os }}
@@ -92,9 +83,6 @@ jobs:
           TAG: ${{ needs.create_release.outputs.tag }}
         shell: bash
         run: |
-          # Genuinely, you can't remove this line
-          # idk, i think it updates the cache or something
-          gh release view "$TAG"
           gh release upload "$TAG" "$INPUT_FILE"
 
   publish: # set the release tag as non-draft
@@ -108,7 +96,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
-          gh release view "$TAG"
           gh release edit "$TAG" --draft=false
       - uses: eregon/keep-last-n-releases@v1
         env:
@@ -128,5 +115,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.create_release.outputs.tag }}
         run: |
-          gh release view "$TAG"
           gh release delete "$TAG" --yes
