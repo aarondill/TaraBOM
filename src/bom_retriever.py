@@ -31,7 +31,7 @@ def read_config() -> Config:
     if not found_files:
         desc = (
             "This file can be in one of these locations (later override earlier):\n"
-            + config_file_names.join("\n")
+            + "\n".join(config_file_names)
         )
         raise FileNotFoundError("bom_retreiver.ini not found.\n" + desc)
     port = config.get("config", "port", fallback=8080)
