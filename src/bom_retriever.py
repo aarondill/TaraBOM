@@ -22,9 +22,9 @@ class Config:
 
 def read_config() -> Config:
     config_file_names = [
-        os.path.join(os.path.dirname(__file__), "bom_retreiver.ini"),
-        os.path.join(user_config_dir("bom_retreiver", False), "bom_retreiver.ini"),
-        "./bom_retreiver.ini",
+        os.path.join(os.path.dirname(__file__), "bom_retriever.ini"),
+        os.path.join(user_config_dir("bom_retriever", False), "bom_retriever.ini"),
+        "./bom_retriever.ini",
     ]
     config = ConfigParser()
     found_files = config.read(config_file_names)
@@ -33,7 +33,7 @@ def read_config() -> Config:
             "This file can be in one of these locations (later override earlier):\n"
             + "\n".join(config_file_names)
         )
-        raise FileNotFoundError("bom_retreiver.ini not found.\n" + desc)
+        raise FileNotFoundError("bom_retriever.ini not found.\n" + desc)
     port = config.get("config", "port", fallback=8080)
     server = config.get("config", "server")
     db = config.get("config", "db")
@@ -218,9 +218,9 @@ def jsonify(o, **kwargs):
 class Serv(BaseHTTPRequestHandler):
     def do_GET(self):
         part_num = self.path.split("/")[1]
-        retreiver: BOMRetriever = self.server.retreiver
+        retriever: BOMRetriever = self.server.retriever
         try:
-            result = retreiver.load_toplevel_item(part_num, retreiver._get_ttl_hash())
+            result = retriever.load_toplevel_item(part_num, retriever._get_ttl_hash())
         except Exception as e:
             print(e)
             self.send_response(500)
@@ -258,8 +258,8 @@ if __name__ == "__main__":
             f"Driver=SQL Server;Server={config.server};Database={config.db};Trusted_Connection=yes;"
         )
     ) as cnxn:
-        retreiver = BOMRetriever(cnxn, config.omnify_url)
+        retriever = BOMRetriever(cnxn, config.omnify_url)
         print("Starting server on port", port)
         with ThreadingHTTPServer(("localhost", port), Serv) as httpd:
-            httpd.retreiver = retreiver  # make this accessible to the request handler
+            httpd.retriever = retriever  # make this accessible to the request handler
             httpd.serve_forever()
