@@ -1,7 +1,7 @@
 import time
 import os
 import sys
-from configparser import ConfigParser, UNNAMED_SECTION
+import configparser
 from typing import List, Union
 from functools import lru_cache
 import pyodbc
@@ -26,7 +26,7 @@ def read_config() -> Config:
         os.path.join(user_config_dir("bom_retreiver", False), "bom_retreiver.ini"),
         "./bom_retreiver.ini",
     ]
-    config = ConfigParser(allow_unnamed_section=True)
+    config = configparser.ConfigParser(allow_unnamed_section=True)
     found_files = config.read(config_file_names)
     if not found_files:
         desc = (
@@ -34,10 +34,10 @@ def read_config() -> Config:
             + config_file_names.join("\n")
         )
         raise FileNotFoundError("bom_retreiver.ini not found.\n" + desc)
-    port = config.get(UNNAMED_SECTION, "port", fallback=8080)
-    server = config.get(UNNAMED_SECTION, "server")
-    db = config.get(UNNAMED_SECTION, "db")
-    omnify_url = config.get(UNNAMED_SECTION, "omnify_url")
+    port = config.get(configparser.UNNAMED_SECTION, "port", fallback=8080)
+    server = config.get(configparser.UNNAMED_SECTION, "server")
+    db = config.get(configparser.UNNAMED_SECTION, "db")
+    omnify_url = config.get(configparser.UNNAMED_SECTION, "omnify_url")
     return Config(port=port, server=server, db=db, omnify_url=omnify_url)
 
 
