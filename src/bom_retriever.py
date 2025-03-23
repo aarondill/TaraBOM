@@ -1,5 +1,7 @@
 import time
+import os
 import sys
+from configparser import ConfigParser, UNNAMED_SECTION
 from typing import List, Union
 from functools import lru_cache
 import pyodbc
@@ -7,6 +9,36 @@ from contextlib import closing
 from dataclasses import dataclass, is_dataclass, asdict
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from platformdirs import user_config_dir
+
+
+@dataclass(kw_only=True)
+class Config:
+    port: int
+    server: str
+    db: str
+    omnify_url: str
+
+
+def read_config() -> Config:
+    config_file_names = [
+        os.path.join(os.path.dirname(__file__), "bom_retreiver.ini"),
+        os.path.join(user_config_dir("bom_retreiver", False), "bom_retreiver.ini"),
+        "./bom_retreiver.ini",
+    ]
+    config = ConfigParser(allow_unnamed_section=True)
+    found_files = config.read(config_file_names)
+    if not found_files:
+        desc = (
+            "This file can be in one of these locations (later override earlier):\n"
+            + config_file_names.join("\n")
+        )
+        raise FileNotFoundError("bom_retreiver.ini not found.\n" + desc)
+    port = config.get(UNNAMED_SECTION, "port", fallback=8080)
+    server = config.get(UNNAMED_SECTION, "server")
+    db = config.get(UNNAMED_SECTION, "db")
+    omnify_url = config.get(UNNAMED_SECTION, "omnify_url")
+    return Config(port=port, server=server, db=db, omnify_url=omnify_url)
 
 
 @dataclass(kw_only=True)
@@ -54,17 +86,22 @@ class Output:
 
 
 class BOMRetriever:
-    # This is the main class
-    def __init__(self, cnxn):
+    def __init__(self, cnxn, omnify_url: str):
+        """
+        Args:
+            cnxn: Database connection
+            omnify_url (str): The URL of the Omnify server, used for constructing attachment URLs
+        """
         self.cursor = cnxn.cursor()
+        self.omnify_url = omnify_url
 
-    def check_item_existence(self, pn) -> bool:
+    def check_item_existence(self, pn: str) -> bool:
         query = "SELECT Rev FROM EntryInfo WHERE PartNumber = ?"
         self.cursor.execute(query, (pn,))
         row = self.cursor.fetchone()
         return row is not None
 
-    def get_item_info(self, rev_ID) -> OmnifyEntry | None:
+    def get_item_info(self, rev_ID: int) -> OmnifyEntry | None:
         # Fetch the highest revision of an item with released status
         query = "SELECT Description,Status,UnderECO FROM EntryInfo WHERE Rev = ?"
         self.cursor.execute(query, (rev_ID,))
@@ -147,7 +184,8 @@ class BOMRetriever:
             attachments = []
             while attachment_row := self.cursor.fetchone():
                 url = (
-                    "http://omnify.kissgroupllc.net/omnify5/Apps/OpenDocument.aspx?obj=0&docid="
+                    self.omnify_url
+                    + "/Apps/OpenDocument.aspx?obj=0&docid="
                     + str(attachment_row[0])
                 )
                 attachments.append(BomAttachment(url=url, file_name=attachment_row[1]))
@@ -204,9 +242,9 @@ if __name__ == "__main__":
         print("Requires Python 3")
         sys.exit()
 
-    port = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else 8080
+    config = read_config()
     try:
-        port = int(port)
+        port = int(config.port)
     except ValueError:
         print("Invalid port number: ", port)
         sys.exit(1)
@@ -217,10 +255,10 @@ if __name__ == "__main__":
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
-            r"Driver=SQL Server;Server=TX01AS01;Database=omnify50;Trusted_Connection=yes;"
+            f"Driver=SQL Server;Server={config.server};Database={config.db};Trusted_Connection=yes;"
         )
     ) as cnxn:
-        retreiver = BOMRetriever(cnxn)
+        retreiver = BOMRetriever(cnxn, config.omnify_url)
         print("Starting server on port", port)
         with ThreadingHTTPServer(("localhost", port), Serv) as httpd:
             httpd.retreiver = retreiver  # make this accessible to the request handler

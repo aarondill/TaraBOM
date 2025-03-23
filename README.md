@@ -3,14 +3,32 @@ If you don't know what this is, it's not for you.
 
 Executables are available in the releases section.
 
-All dependencies are listed in the requirements.txt file.
+All dependencies are listed in the `requirements.txt` file.
 
 Notes:
 
 - If the production order part number being retrieved has _no released version_, the client receives an error.
 - If the production order part number is currently under an open engineering change, the user is allowed to proceed but a warning is attached that they should contact engineering first.
 
-Still to do:
+# Config (Mandatory):
 
-- I didn’t take the time to put the same warning and error triggers in the BOM, so this demo does allow retrieval of attachments for all items in the BOM.
-  - For the Lynq code though, they should have the same checks. Users should get an error when trying to pull attachments for BOM items which aren’t released, and a warning for BOM items that are under an open ECO.
+The configuration file is named `bom_retreiver.ini` can be located in various places.
+
+In order of priority:  
+All of these will be loaded, but higher priority ones will override lower priority ones.
+
+1. The config file in the same directory as the executable.
+2. The config file in the current working directory.
+3. Depending on OS:
+   - Linux: `$XDG_CONFIG_DIR/bom_retriever/bom_retriever.ini` or `~/.config/bom_retriever/bom_retriever.ini`
+   - Windows: `%USERPROFILE%\AppData\Local\bom_retriever\bom_retriever.ini`
+   - macOS: `~/Library/Application Support/bom_retriever/bom_retriever.ini`
+
+Example file:
+
+```ini
+port = 8080
+server = "<server name>"
+db = "<database name>"
+omnify_url = "http://<some url>/omnify5"
+```
