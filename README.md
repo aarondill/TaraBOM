@@ -29,7 +29,7 @@ Example file:
 ```ini
 [config]
 port = 8080
-server = "<server name>"
-db = "<database name>"
-omnify_url = "http://<some url>/omnify5"
+server = <server name>
+db = <database name>
+omnify_url = http://<some url>/omnify5
 ```
