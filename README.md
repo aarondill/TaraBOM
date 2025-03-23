@@ -27,6 +27,7 @@ All of these will be loaded, but higher priority ones will override lower priori
 Example file:
 
 ```ini
+[config]
 port = 8080
 server = "<server name>"
 db = "<database name>"
