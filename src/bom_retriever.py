@@ -1,44 +1,10 @@
-import time
-import os
 import sys
-from configparser import ConfigParser
 from typing import List, Union
-from functools import lru_cache
 import pyodbc
 from contextlib import closing
 from dataclasses import dataclass, is_dataclass, asdict
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from platformdirs import user_config_dir
-
-
-@dataclass(kw_only=True)
-class Config:
-    port: int
-    server: str
-    db: str
-    omnify_url: str
-
-
-def read_config() -> Config:
-    config_file_names = [
-        os.path.join(os.path.dirname(__file__), "bom_retriever.ini"),
-        os.path.join(user_config_dir("bom_retriever", False), "bom_retriever.ini"),
-        "./bom_retriever.ini",
-    ]
-    config = ConfigParser()
-    found_files = config.read(config_file_names)
-    if not found_files:
-        desc = (
-            "This file can be in one of these locations (later override earlier):\n"
-            + "\n".join(config_file_names)
-        )
-        raise FileNotFoundError("bom_retriever.ini not found.\n" + desc)
-    port = config.get("config", "port", fallback=8080)
-    server = config.get("config", "server")
-    db = config.get("config", "db")
-    omnify_url = config.get("config", "omnify_url")
-    return Config(port=port, server=server, db=db, omnify_url=omnify_url)
 
 
 @dataclass(kw_only=True)
@@ -86,22 +52,17 @@ class Output:
 
 
 class BOMRetriever:
-    def __init__(self, cnxn, omnify_url: str):
-        """
-        Args:
-            cnxn: Database connection
-            omnify_url (str): The URL of the Omnify server, used for constructing attachment URLs
-        """
+    # This is the main class
+    def __init__(self, cnxn):
         self.cursor = cnxn.cursor()
-        self.omnify_url = omnify_url
 
-    def check_item_existence(self, pn: str) -> bool:
+    def check_item_existence(self, pn) -> bool:
         query = "SELECT Rev FROM EntryInfo WHERE PartNumber = ?"
         self.cursor.execute(query, (pn,))
         row = self.cursor.fetchone()
         return row is not None
 
-    def get_item_info(self, rev_ID: int) -> OmnifyEntry | None:
+    def get_item_info(self, rev_ID) -> OmnifyEntry | None:
         # Fetch the highest revision of an item with released status
         query = "SELECT Description,Status,UnderECO FROM EntryInfo WHERE Rev = ?"
         self.cursor.execute(query, (rev_ID,))
@@ -121,14 +82,7 @@ class BOMRetriever:
             rev_letter=rev_letter,
         )
 
-    def _get_ttl_hash(self):
-        """Return the same value withing `seconds` time period"""
-        expiration_time = 60 * 30  # 30 minutes
-        return round(time.time() / expiration_time)
-
-    @lru_cache()
-    def load_toplevel_item(self, part_num, ttl_hash) -> Union[Output, tuple[int, str]]:
-        del ttl_hash  # This isn't used! only here to void old caches!
+    def load_toplevel_item(self, part_num) -> Union[Output, tuple[int, str]]:
         # Error if attempting to load an empty part number
         if not part_num:
             return (400, "Part Number Required: please enter a part number")
@@ -184,8 +138,7 @@ class BOMRetriever:
             attachments = []
             while attachment_row := self.cursor.fetchone():
                 url = (
-                    self.omnify_url
-                    + "/Apps/OpenDocument.aspx?obj=0&docid="
+                    "http://omnify.kissgroupllc.net/omnify5/Apps/OpenDocument.aspx?obj=0&docid="
                     + str(attachment_row[0])
                 )
                 attachments.append(BomAttachment(url=url, file_name=attachment_row[1]))
@@ -218,11 +171,10 @@ def jsonify(o, **kwargs):
 class Serv(BaseHTTPRequestHandler):
     def do_GET(self):
         part_num = self.path.split("/")[1]
-        retriever: BOMRetriever = self.server.retriever
+        retreiver: BOMRetriever = self.server.retreiver
         try:
-            result = retriever.load_toplevel_item(part_num, retriever._get_ttl_hash())
+            result = retreiver.load_toplevel_item(part_num)
         except Exception as e:
-            print(e)
             self.send_response(500)
             self.end_headers()
             self.wfile.write(bytes(str(e), "utf-8"))
@@ -242,9 +194,9 @@ if __name__ == "__main__":
         print("Requires Python 3")
         sys.exit()
 
-    config = read_config()
+    port = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else 8080
     try:
-        port = int(config.port)
+        port = int(port)
     except ValueError:
         print("Invalid port number: ", port)
         sys.exit(1)
@@ -252,18 +204,14 @@ if __name__ == "__main__":
         print("Port number out of range")
         sys.exit(1)
 
-    print(f"Connecting to database {config.db} on server {config.server}")
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
             r"Driver=SQL Server;Server=TX01AS01;Database=omnify50;Trusted_Connection=yes;"
-            # "Trusted_Connection=yes;Driver={SQL Server}",
-            # Server=config.server,
-            # Database=config.db,
         )
     ) as cnxn:
-        retriever = BOMRetriever(cnxn, config.omnify_url)
+        retreiver = BOMRetriever(cnxn)
         print("Starting server on port", port)
         with ThreadingHTTPServer(("localhost", port), Serv) as httpd:
-            httpd.retriever = retriever  # make this accessible to the request handler
+            httpd.retreiver = retreiver  # make this accessible to the request handler
             httpd.serve_forever()
