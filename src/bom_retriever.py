@@ -252,10 +252,14 @@ if __name__ == "__main__":
         print("Port number out of range")
         sys.exit(1)
 
+    print(f"Connecting to database {config.db} on server {config.server}")
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
-            rf"Driver=SQL Server;Server={config.server};Database={config.db};Trusted_Connection=yes;"
+            Driver="SQL Server",
+            Server=config.server,
+            Database=config.db,
+            Trusted_Connection="yes",
         )
     ) as cnxn:
         retriever = BOMRetriever(cnxn, config.omnify_url)
