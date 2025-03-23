@@ -28,12 +28,13 @@ jobs:
 
       - name: Create Release
         id: create_release
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          NAME: "Release ${{ github.ref_name }} ${{ steps.tag.outputs.tag }}"
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
+          NAME=$(git log -1 --pretty=format:"%s")
           gh release create --draft --title "$NAME" --generate-notes "$TAG"
           gh release view "$TAG"
 
