@@ -256,10 +256,9 @@ if __name__ == "__main__":
     # Open a connection to the Omnify database, create the cursor object for data retrieval
     with closing(
         pyodbc.connect(
-            Driver="SQL Server",
+            "Trusted_Connection=yes;Driver={SQL Server}",
             Server=config.server,
             Database=config.db,
-            Trusted_Connection="yes",
         )
     ) as cnxn:
         retriever = BOMRetriever(cnxn, config.omnify_url)
